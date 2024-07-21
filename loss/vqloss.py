@@ -9,8 +9,8 @@ class VQ_Loss(nn.Module):
     
     def forward(self,x, output):
         
-        loss_predict = torch.sum((x - output["x"])**2)
-        loss_codebook = torch.sum((output["z"].detach() - output["zq"])**2)
-        loss_commit = torch.sum((output["z"] - output["zq"].detach())**2)
+        loss_predict = torch.mean((x - output["x"])**2)
+        loss_codebook = torch.mean((output["z"].detach() - output["zq"])**2)
+        loss_commit = torch.mean((output["z"] - output["zq"].detach())**2)
         
         return loss_predict + loss_codebook + self.beta* loss_commit

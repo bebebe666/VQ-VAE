@@ -5,7 +5,8 @@
 import torch
 import torch.nn as nn
 from .residual_block import Residual
-
+                
+                
 class VQ_Encoder(nn.Module):
     def __init__(self, in_channels=3, hidden_size=256, down_sample=4, residual_num=2):
         super().__init__()
@@ -19,7 +20,11 @@ class VQ_Encoder(nn.Module):
         
         # residual part
         self.res_seq = nn.Sequential(*[Residual(hidden_size) for _ in range(residual_num)])
-            
+
+        
+
+    
+        
     
     def forward(self, x):
         x = self.down_module_seq(x)

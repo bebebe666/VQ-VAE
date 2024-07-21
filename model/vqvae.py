@@ -5,7 +5,13 @@ from .encoder import VQ_Encoder
 from .decoder import VQ_Decoder
 
 
-
+def _init_weight(module):
+    if isinstance(module, nn.Conv2d) or isinstance(module, nn.ConvTranspose2d):
+        torch.nn.init.xavier_uniform_(module.weight)
+        if module.bias is not None:
+            torch.nn.init.constant_(module.bias, 0)
+            
+            
 class VQ_VAE(nn.Module):
     def __init__(
         self, 
@@ -14,6 +20,7 @@ class VQ_VAE(nn.Module):
         input_size=128, 
         latent_size=32, 
         residual_num=2, 
+        K=512,
         *args, 
         **kwargs
     ) -> None:
@@ -30,23 +37,28 @@ class VQ_VAE(nn.Module):
         self.encoder = VQ_Encoder(in_channels, hidden_size, down_sample, residual_num)
         self.decoder = VQ_Decoder(in_channels, hidden_size, down_sample, residual_num)
         
-        self.code_books = nn.Parameter(torch.rand(hidden_size,latent_size,latent_size))
-    
+        self.code_books = nn.Parameter(torch.rand(K, hidden_size))
+
+        self.apply(_init_weight)
+        self.code_books.data.uniform_(-1/K, 1/K)
+        
+        
+        
     def find_codebook(self,z):
-        z = z.flatten(1) # z[256, 1024]
-        z = z.permute(1, 0) #z[1024, 256]
+        z = z.flatten(2) # z[N, 256, 1024]
+        z = z.permute(0, 2, 1) #z[N, 1024, 256]
         
-        code_books = self.code_books.flatten(1)
-        code_books = code_books.permute(1, 0)
+        code_books = self.code_books
         
-        _z = z[:, None, :]
-        _code_books = code_books[None, :, :] #[1024,1024,256]
-        distance = torch.sum((_z - _code_books)**2, dim = -1) #[1024,1024]
-        index = torch.argmin(distance, dim=1) #[1024]
+        _z = z[:, :, None, :]
+        _code_books = code_books[None, None, :, :] #[N, 1024,K,256]
+        # print(_z.shape, _code_books.shape)
+        distance = torch.sum((_z - _code_books)**2, dim = -1) #[N, 1024,K]
+        index = torch.argmin(distance, dim=2) #[N, 1024]
         
         zq = code_books[index, :]
-        zq = zq.reshape(self.latent_size, self.latent_size, -1)
-        zq = zq.permute(2, 0, 1)
+        zq = zq.reshape(z.shape[0], self.latent_size, self.latent_size, -1)
+        zq = zq.permute(0, 3, 1, 2)
         
         return zq
             
@@ -70,7 +82,7 @@ class VQ_VAE(nn.Module):
 
 
 if __name__ == "__main__":
-    x = torch.rand(3,128,128)
+    x = torch.rand(6, 3,128,128)
     model = VQ_VAE()
     y = model(x)
     print(y["x"].shape)
