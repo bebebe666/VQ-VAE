@@ -15,4 +15,4 @@ dataset_root = '/root/autodl-tmp/imagenet/train'
 
 train_dataset = ImageFolder(root=dataset_root, transform=data_transform)
 
-imagenet_train_dataloader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=8, pin_memory=True)
+imagenet_train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=8, pin_memory=True)

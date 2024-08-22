@@ -32,6 +32,7 @@ class VQ_VAE(nn.Module):
             exit()
             
         self.latent_size = latent_size
+        self.hidden_size = hidden_size
         
         down_sample = input_size // latent_size
         self.encoder = VQ_Encoder(in_channels, hidden_size, down_sample, residual_num)
@@ -60,7 +61,7 @@ class VQ_VAE(nn.Module):
         zq = zq.reshape(z.shape[0], self.latent_size, self.latent_size, -1)
         zq = zq.permute(0, 3, 1, 2)
         
-        return zq
+        return zq, index
             
         
         
@@ -68,7 +69,7 @@ class VQ_VAE(nn.Module):
     def forward(self, x):
         
         z = self.encoder(x) 
-        zq = self.find_codebook(z.detach())
+        zq, _ = self.find_codebook(z.detach())
         
         z = zq + (z - zq).detach()
         x_predict = self.decoder(zq)
